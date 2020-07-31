@@ -3,11 +3,11 @@ const PLAYER_SPEED = 5; // The number of pixels the player moves along its path 
 const X_AXIS_DIFF = 100; // Higher values = x axis stretched more (this is in pixels wide)
 const Y_AXIS_SCALE = 5; // Higher values = y axis stretched more (this is a multiple of the canvas height, that is used to map the points between)
 const SCORE_RATE = 10; // Lower values = gain score faster
-const BG_SCROLL_RATE = 3; // Higher values = bg scrolls more per point (e.g by default move 5 pixels for every point)
+const BG_SCROLL_RATE = 5; // Higher values = bg scrolls more per point (e.g by default move 5 pixels for every point)
 ///////////////
 
-let levelData; let levelPoints = []; let player; let score = 0; let newScore = 0; let loaded = false; let failed = false; let soundPlayed = false; let bgPos = 0;
-let pImg; let gImg; let potImg; let dingSound; let angryImg; let angryHeartImg; let backgroundImg; let fireworkImg; let focusedImg; let happyHeartImg; let skullImg;
+let levelData; let levelPoints = []; let player; let score = 0; let loaded = false; let failed = false; let soundPlayed = false; let bgPos = 0;
+let pImg, gImg, potImg, dingSound, angryImg, angryHeartImg, backgroundImg, fireworkImg, focusedImg, happyHeartImg, skullImg, pooImg, cloudImg;
 
 function loadSoundFile() {
   loadSound("assets/ding.ogg", soundFileLoaded, loadImages);
@@ -107,6 +107,24 @@ function loadImages(i) {
 
       break;
 
+    case 10:
+      loadImage("assets/poop.png", (p) => {
+        pooImg = p;
+        loadImages(11);
+
+      }, failedToLoad);
+
+      break;
+
+    case 11:
+      loadImage("assets/cloud.png", (p) => {
+        cloudImg = p;
+        loadImages(12);
+
+      }, failedToLoad);
+
+      break;
+
     default:
       loadDataFile();
       break;
@@ -158,7 +176,7 @@ function generatePointsFromData(data, xInc, heightScale) {
 
     points.push({
       pos: createVector(x, y),
-      correct: false,
+      correct: null,
     });
 
     x += xInc;
@@ -172,7 +190,7 @@ function draw() {
     // image(backgroundImg, -(player.pos.x % 12000) / 10, 0, 12000, 600); // Move with player
     bgPos = lerp(bgPos, score * BG_SCROLL_RATE, 0.1);
     image(backgroundImg, -bgPos - 100, 0, 12000, 600); // Move with score
-    
+
     push();
     translate(-player.pos.x + width / 2, -player.pos.y + height / 2); // Centralise on player's position
 
@@ -185,10 +203,14 @@ function draw() {
         if (levelPoints[i].correct == true) {
           image(gImg, levelPoints[i].pos.x, levelPoints[i].pos.y, 30, 30);
         }
+        else if (levelPoints[i].correct == false) {
+          image(pooImg, levelPoints[i].pos.x, levelPoints[i].pos.y, 30, 30);
+        }
         else {
           fill(255, 50, 50);
           stroke(0);
-          circle(levelPoints[i].pos.x, levelPoints[i].pos.y, 20);
+          // circle(levelPoints[i].pos.x, levelPoints[i].pos.y, 20);
+          image(cloudImg, levelPoints[i].pos.x, levelPoints[i].pos.y, 30, 30);
         }
       }
     }
@@ -211,19 +233,20 @@ function draw() {
 
         if (player.dir == "up") {
           if (dingSound && soundPlayed == false) {
-            dingSound.play();
+            // dingSound.play();
             soundPlayed = true;
-            levelPoints[player.curTarget - 1].correct = true;
+            // levelPoints[player.curTarget - 1].correct = true;
           }
           // score++;
         }
         else {
+          console.log(player.dir);
           // score--;
           soundPlayed = false;
         }
       }
       else {
-        if(player.state == "neutral"){
+        if (player.state == "neutral") {
           player.setImg(pImg);
         }
 
@@ -249,24 +272,25 @@ function draw() {
   }
 }
 
-function keyPressed(){
-  if(key == " "){
+function keyPressed() {
+  if (key == " ") {
     player.startScoring();
   }
 }
 
-function keyReleased(){
-  if(key == " "){
-    let s = player.endScoring();
+function keyReleased() {
+  if (key == " ") {
+    let newScore = player.endScoring();
 
-    newScore = s;
+    score += newScore;
 
-    player.startShowScore();
-
-    if(s > 0){
+    if (newScore > 0) {
+      levelPoints[player.curTarget - 1].correct = true;
+      dingSound.play();
       player.setHappy();
     }
-    else if(s < 0){
+    else if (newScore < 0) {
+      levelPoints[player.curTarget - 1].correct = false;
       player.setAngry();
     }
   }
@@ -294,8 +318,6 @@ class Player {
     this.img = pImg;
     this.pressedPos = 0;
     this.animEnd = 0;
-    this.showScore = false;
-    this.scoreEnd = 0;
   }
 
   update(prev, next, max) {
@@ -319,12 +341,8 @@ class Player {
         this.pos = p5.Vector.lerp(prev, next, this.progress);
       }
 
-      if(Date.now() >= this.animEnd && this.state != "neutral"){
+      if (Date.now() >= this.animEnd && this.state != "neutral") {
         this.setNeutral();
-      }
-
-      if(Date.now() >= this.scoreEnd && this.showScore == true){
-        this.endShowScore();
       }
     }
   }
@@ -337,69 +355,45 @@ class Player {
     image(this.img, this.pos.x, this.pos.y, this.size * 2 + 10, this.size);
 
     noTint();
-    if(this.state == "happy"){
+    if (this.state == "happy") {
       //image(happyHeartImg, this.pos.x + 30, this.pos.y - 30, this.size + 30, this.size + 40);
       image(fireworkImg, this.pos.x + 40, this.pos.y - 50, this.size, this.size);
     }
-    else if(this.state == "angry"){
+    else if (this.state == "angry") {
       //image(angryHeartImg, this.pos.x, this.pos.y - 50, this.size/2, this.size/2);
       image(skullImg, this.pos.x + 40, this.pos.y - 50, this.size, this.size);
     }
-
-    fill(255);
-    stroke(0);
-    strokeWeight(2);
-    if(this.showScore == true){
-
-      if(newScore >= 0){
-        text("+ " + newScore, this.pos.x, this.pos.y + this.size + 5);
-      }
-      else{
-        text(newScore, this.pos.x, this.pos.y + this.size + 5);
-      }
-    }
   }
 
-  startShowScore(){
-    this.scoreEnd = Date.now() + 1000;
-    this.showScore = true;
-  }
-
-  endShowScore(){
-    this.scoreEnd = 0;
-    this.showScore = false;
-    score += newScore;
-  }
-
-  startScoring(){
+  startScoring() {
     this.pressedPos = this.pos.y;
   }
 
-  endScoring(){
+  endScoring() {
     let releasedPos = this.pos.y;
 
-    return floor((this.pressedPos - releasedPos) /10);
+    return floor((this.pressedPos - releasedPos) / 10);
   }
 
-  setImg(i){
+  setImg(i) {
     this.img = i;
   }
 
-  setAngry(){
+  setAngry() {
     this.state = "angry";
     this.setImg(angryImg);
 
     this.animEnd = Date.now() + 2000; // Remain in state for 2 seconds
   }
 
-  setHappy(){
+  setHappy() {
     this.state = "happy";
     this.setImg(pImg);
 
     this.animEnd = Date.now() + 2000;
   }
 
-  setNeutral(){
+  setNeutral() {
     this.state = "neutral";
   }
 }
