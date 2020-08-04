@@ -63,7 +63,7 @@ function loadImages(i) {
       break;
 
     case 5:
-      loadImage("assets/background.jpg", (p) => {
+      loadImage("assets/stonk.png", (p) => {
         backgroundImg = p;
         loadImages(6);
 
@@ -190,7 +190,7 @@ function draw() {
   if (loaded == true) {
     // image(backgroundImg, -(player.pos.x % 12000) / 10, 0, 12000, 600); // Move with player
     bgPos = lerp(bgPos, score * BG_SCROLL_RATE, 0.1);
-    image(backgroundImg, -bgPos - 100, 0, 12000, 600); // Move with score
+    image(backgroundImg, -bgPos - 100, 0, 3000, 600); // Move with score
     
     push();
     translate(-player.pos.x + width / 2, -player.pos.y + height / 2); // Centralise on player's position
