@@ -107,7 +107,7 @@ function loadImages(i) {
 
       break;
 
-      case 10:
+    case 10:
       loadImage("assets/poop.png", (p) => {
         poopImg = p;
         loadImages(11);
@@ -177,7 +177,8 @@ function generatePointsFromData(data, xInc, heightScale) {
     points.push({
       pos: createVector(x, y),
       correct: null,
-      scored: false
+      scored: false,
+      soundPlayed: false,
     });
 
     x += xInc;
@@ -191,7 +192,7 @@ function draw() {
     // image(backgroundImg, -(player.pos.x % 12000) / 10, 0, 12000, 600); // Move with player
     bgPos = lerp(bgPos, score * BG_SCROLL_RATE, 0.1);
     image(backgroundImg, -bgPos - 100, 0, 3000, 600); // Move with score
-    
+
     push();
     translate(-player.pos.x + width / 2, -player.pos.y + height / 2); // Centralise on player's position
 
@@ -203,8 +204,13 @@ function draw() {
       if (i >= 0) {
         if (levelPoints[i].correct == true) {
           image(gImg, levelPoints[i].pos.x, levelPoints[i].pos.y, 30, 30);
+
+          if(levelPoints[i].soundPlayed === false){
+            dingSound.play();
+            levelPoints[i].soundPlayed = true;
+          }
         }
-        else if(levelPoints[i].correct == false){
+        else if (levelPoints[i].correct == false) {
           image(poopImg, levelPoints[i].pos.x, levelPoints[i].pos.y, 30, 30);
         }
         else {
@@ -229,43 +235,28 @@ function draw() {
         player.setImg(focusedImg);
 
         if (player.dir == "up") {
-          if (dingSound && soundPlayed == false) {
-            dingSound.play();
-            soundPlayed = true;
-            levelPoints[player.curTarget - 1].correct = true;
-          }
-          if(levelPoints[player.curTarget - 1].scored == false){
-            newScore ++;
-            console.log(newScore);
-            levelPoints[player.curTarget - 1].scored = true;
+          levelPoints[player.curTarget].correct = true;
+
+          if (levelPoints[player.curTarget].scored == false) {
+            newScore++;
+            levelPoints[player.curTarget].scored = true;
           }
         }
-        else if(player.dir == "down") {
-          soundPlayed = false;
-          levelPoints[player.curTarget - 1].correct = false;
+        else if (player.dir == "down") {
+          levelPoints[player.curTarget].correct = false;
 
-          if(levelPoints[player.curTarget - 1].scored == false){
-            newScore --;
-            console.log(newScore);
-
-            levelPoints[player.curTarget - 1].scored = true;
+          if (levelPoints[player.curTarget].scored == false) {
+            newScore--;
+            levelPoints[player.curTarget].scored = true;
           }
         }
-        else{
-          soundPlayed = false;
-          levelPoints[player.curTarget - 1].correct = null;
+        else {
+          levelPoints[player.curTarget].correct = null;
         }
       }
       else {
-        if(player.state == "neutral"){
+        if (player.state == "neutral") {
           player.setImg(pImg);
-        }
-
-        if (player.dir == "down") {
-          soundPlayed = false;
-        }
-        else {
-          soundPlayed = false;
         }
       }
     }
@@ -281,22 +272,22 @@ function draw() {
   }
 }
 
-function keyPressed(){
-  if(key == " "){
+function keyPressed() {
+  if (key == " ") {
     player.startScoring();
   }
 }
 
-function keyReleased(){
-  if(key == " "){
+function keyReleased() {
+  if (key == " ") {
     let s = player.endScoring();
-    
+
     player.startShowScore();
-    
-    if(s > 0){
+
+    if (s > 0) {
       player.setHappy();
     }
-    else if(s < 0){
+    else if (s < 0) {
       player.setAngry();
     }
   }
@@ -337,7 +328,7 @@ class Player {
         if (prev.y < next.y) { // Down / neutral
           this.dir = "down";
         }
-        else if(prev.y == next.y){
+        else if (prev.y == next.y) {
           this.dir = "none";
         }
         else {
@@ -349,11 +340,11 @@ class Player {
         this.pos = p5.Vector.lerp(prev, next, this.progress);
       }
 
-      if(Date.now() >= this.animEnd && this.state != "neutral"){
+      if (Date.now() >= this.animEnd && this.state != "neutral") {
         this.setNeutral();
       }
 
-      if(Date.now() >= this.scoreEnd && this.showScore == true){
+      if (Date.now() >= this.scoreEnd && this.showScore == true) {
         this.endShowScore();
       }
     }
@@ -364,11 +355,11 @@ class Player {
     noStroke();
     image(this.img, this.pos.x, this.pos.y, this.size * 2 + 10, this.size);
 
-    if(this.state == "happy"){
+    if (this.state == "happy") {
       //image(happyHeartImg, this.pos.x + 30, this.pos.y - 30, this.size + 30, this.size + 40);
       image(fireworkImg, this.pos.x + 40, this.pos.y - 50, this.size, this.size);
     }
-    else if(this.state == "angry"){
+    else if (this.state == "angry") {
       //image(angryHeartImg, this.pos.x, this.pos.y - 50, this.size/2, this.size/2);
       image(skullImg, this.pos.x + 40, this.pos.y - 50, this.size, this.size);
     }
@@ -376,58 +367,58 @@ class Player {
     fill(255);
     stroke(0);
     strokeWeight(2);
-    if(this.showScore == true){
+    if (this.showScore == true) {
 
-      if(newScore >= 0){
+      if (newScore >= 0) {
         text("+ " + newScore, this.pos.x, this.pos.y + this.size + 5);
       }
-      else{
+      else {
         text(newScore, this.pos.x, this.pos.y + this.size + 5);
       }
     }
   }
 
-  startShowScore(){
+  startShowScore() {
     this.scoreEnd = Date.now() + 500;
     this.showScore = true;
   }
 
-  endShowScore(){
+  endShowScore() {
     this.scoreEnd = 0;
     this.showScore = false;
     score += newScore;
     newScore = 0;
   }
 
-  startScoring(){
+  startScoring() {
     this.pressedPos = this.pos.y;
   }
 
-  endScoring(){
+  endScoring() {
     let releasedPos = this.pos.y;
 
-    return floor((this.pressedPos - releasedPos) /10);
+    return floor((this.pressedPos - releasedPos) / 10);
   }
 
-  setImg(i){
+  setImg(i) {
     this.img = i;
   }
 
-  setAngry(){
+  setAngry() {
     this.state = "angry";
     this.setImg(angryImg);
 
     this.animEnd = Date.now() + 2000; // Remain in state for 2 seconds
   }
 
-  setHappy(){
+  setHappy() {
     this.state = "happy";
     this.setImg(pImg);
 
     this.animEnd = Date.now() + 2000;
   }
 
-  setNeutral(){
+  setNeutral() {
     this.state = "neutral";
   }
 }
